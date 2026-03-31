@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Test PDF</title>
+
+  <style>
+
+body {
+  margin: 0;
+  background: #ccc;
+  font-family: Arial, sans-serif;
+}
+
+.page {
+  width: 277mm;
+  height: 190mm;
+  margin: 20px auto;
+  padding: 10mm;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 2px solid red;
+}
+
+/* BODY */
+.body {
+  flex: 1;
+}
+
+/* TABLE */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+th, td {
+  border: 1px solid black;
+  padding: 2px;
+}
+
+.top-line {
+  width: 100%;
+  border-top: 2px solid #000;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0 0 10px 0;
+}
+
+.page-footer {
+  flex-shrink: 0;
+  margin-top: auto;
+  page-break-inside: avoid;
+}
+
+/* === Cartouche PDF (copie stricte depuis factorsToHtml.js — generateCartoucheHtml + styles associés) === */
+
+.cartouche-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  border: 1px solid #000;
+  box-sizing: border-box;
+  min-height: 90px;
+  page-break-inside: avoid;
+}
+
+.cartouche-block {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 100px;
+  border-right: 1px solid #000;
+  padding: 7px 8px;
+  box-sizing: border-box;
+  font-size: 11px;
+  line-height: 1.15;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cartouche-block:last-child {
+  border-right: none;
+}
+
+.cartouche-block .title {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.block-content {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+}
+
+.text-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.text-content > div {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logo-block {
+  flex: 0 0 12%;
+  width: 12%;
+  padding: 6px;
+}
+
+.logo-block .block-content {
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.logo-block .text-content {
+  display: none;
+}
+
+.logo-block .right-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  margin: 0;
+  min-width: 0;
+}
+
+.organisme-block,
+.installateur-block,
+.client-block {
+  flex: 0 0 25%;
+  width: 25%;
+}
+
+.logo-skema {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.right-content {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.installateur-logo {
+  max-height: 18px;
+  max-width: 54px;
+  object-fit: contain;
+}
+
+.signature-slot {
+  width: 120px;
+  height: 50px;
+  border: 0px solid #000;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #fff;
+  overflow: hidden;
+}
+
+.signature-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.versionning {
+  flex: 0 0 9%;
+  width: 9%;
+  min-width: 0;
+  font-size: 10px;
+  line-height: 1.1;
+  white-space: normal;
+  padding: 7px 8px;
+}
+
+.versionning .text-content,
+.versionning .block-content {
+  overflow: hidden;
+}
+
+.versionning div + div {
+  margin-top: 3px;
+}
+
+.installateur-fixed {
+  position: absolute;
+  top: 20px;
+  right: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 17px;
+}
+
+.logo-fixed {
+  position: absolute;
+  top: 50px;
+  left: 10px;
+}
+
+.logo-free {
+  width: 100px;
+  object-fit: contain;
+}
+
+.installateur-logo-free {
+  width: 110px;
+  object-fit: contain;
+}
+
+.client-fixed {
+  position: absolute;
+  top: 59px;
+  right: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.client-block .text-content {
+  padding-right: 120px;
+}
+
+  </style>
+</head>
+
+<body>
+
+<div class="page">
+
+  <div class="body">
+
+    <div class="top-line"></div>
+    <h2 class="section-title">Facteurs d'influence externes</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>LOCAL</th>
+          <th>AA</th>
+          <th>AB</th>
+          <th>AC</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        <tr><td>Local 1</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>Local 2</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>Local 3</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>Local 4</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>Local 5</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>Local 6</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>Local 7</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>Local 8</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>Local 9</td><td>1</td><td>1</td><td>1</td></tr>
+        <tr><td>Local 10</td><td>1</td><td>1</td><td>1</td></tr>
+
+      </tbody>
+    </table>
+
+  </div>
+
+  <div class="page-footer">
+
+    <div class="cartouche-row">
+
+      <div class="cartouche-block logo-block">
+        <div class="block-content">
+          <div class="text-content"></div>
+          <div class="right-content">
+            <div class="logo-fixed">
+              <img src="logo.png" class="logo-free" alt="" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cartouche-block organisme-block">
+        <div class="block-content">
+          <div class="text-content">
+            <div class="title">Organisme de contrôle</div>
+            <div>Atlas Contrôle</div>
+            <div>Boulevard du Lambermont 140</div>
+            <div>1030 Schaerbeek</div>
+            <div>Belgique</div>
+            <div>Tél. 02 245 37 37</div>
+            <div>info@atlascontrole.be</div>
+            <div>Agrément : BEL-ATLAS-OC-2024</div>
+          </div>
+          <div class="right-content"></div>
+        </div>
+      </div>
+
+      <div class="cartouche-block installateur-block">
+        <div class="block-content">
+          <div class="text-content">
+            <div class="title">Installateur</div>
+
+            <div class="installateur-text">
+              Nom société SRL<br>
+              Rue de l'Énergie 45<br>
+              4000 Liège<br>
+              TVA BE0123.456.789
+            </div>
+
+            <div class="installateur-fixed">
+              <img src="logo.png" class="installateur-logo-free" alt="" />
+              <div class="signature-slot signature-installateur"></div>
+            </div>
+
+          </div>
+
+          <div class="right-content">
+          </div>
+        </div>
+      </div>
+
+      <div class="cartouche-block client-block">
+        <div class="block-content">
+          <div class="text-content">
+            <div class="title">Client</div>
+
+            <div class="client-text">
+              Simon Lemaître<br>
+              Rue Exemple 12<br>
+              1050 Bruxelles
+            </div>
+
+            <div class="client-fixed">
+              <div class="signature-slot signature-client"></div>
+            </div>
+
+          </div>
+
+          <div class="right-content">
+          </div>
+        </div>
+      </div>
+
+      <div class="cartouche-block versionning">
+        <div class="block-content">
+          <div class="text-content">
+            <div>Date : 29/03/2026</div>
+            <div>Version : 1.0</div>
+            <div>Page : 1 / 1</div>
+          </div>
+          <div class="right-content"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
