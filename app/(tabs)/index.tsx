@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,9 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
 import Svg, { Rect } from 'react-native-svg';
+
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 const T = {
   bg: '#0A0A0A',
@@ -90,6 +93,24 @@ function ChoiceCard({
 }
 
 export default function HomeScreen() {
+  console.log('TEST FIRESTORE START');
+
+  async function testWrite() {
+    try {
+      const docRef = await addDoc(collection(db, 'test'), {
+        name: 'test',
+        createdAt: new Date(),
+      });
+      console.log('OK Firestore ID:', docRef.id);
+    } catch (e) {
+      console.error('Erreur Firestore:', e);
+    }
+  }
+
+  useEffect(() => {
+    testWrite();
+  }, []);
+
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<SelectedSchemaType | null>(null);
 
