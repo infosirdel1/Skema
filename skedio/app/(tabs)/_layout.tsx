@@ -25,6 +25,8 @@ const TAB_INACTIVE = "#71717A";
 const ACCENT_BAR = "#C8102E";
 
 export default function TabLayout() {
+  console.log("LAYOUT TABS CHARGÉ");
+
   return (
     <Tabs
       screenOptions={{

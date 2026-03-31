@@ -90,6 +90,8 @@ function ChoiceCard({
 }
 
 export default function HomeScreen() {
+  console.log("ECRAN TABS/INDEX CHARGÉ");
+
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<SelectedSchemaType | null>(null);
 
