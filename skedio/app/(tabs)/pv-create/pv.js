@@ -26,6 +26,7 @@ const inverterTypes = [
 ];
 
 export default function PvInstallationScreen() {
+  console.log("FILE:", "(tabs)/pv-create/pv.js");
   console.log("PV SCREEN RENDER");
   const router = useRouter();
   const [draft, setDraft] = useState(null);

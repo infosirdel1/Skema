@@ -7,6 +7,8 @@ import PvFieldCard from "@/components/pv/PvFieldCard";
 import { loadPvDraft, savePvDraft } from "@/lib/pvDraftStorage";
 
 export default function PvAdresseScreen() {
+  console.log("FILE:", "(tabs)/pv-create/adresse.js");
+
   const router = useRouter();
   const [draft, setDraft] = useState(null);
 

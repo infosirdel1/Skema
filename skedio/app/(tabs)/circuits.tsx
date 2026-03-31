@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AppHeader from "@/components/AppHeader";
 
 export default function CircuitsScreen() {
+  console.log("FILE:", "(tabs)/circuits.tsx");
+
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <AppHeader />

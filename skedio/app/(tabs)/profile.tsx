@@ -69,6 +69,8 @@ function Field({
 }
 
 export default function ProfileScreen() {
+  console.log("FILE:", "(tabs)/profile.tsx");
+
   const signatureRef = useRef<ComponentRef<typeof SignatureScreen> | null>(null);
   const [signature, setSignature] = useState("");
   const [companyName, setCompanyName] = useState("");

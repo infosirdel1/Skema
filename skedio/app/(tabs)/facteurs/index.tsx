@@ -109,6 +109,8 @@ function parseClientParam(raw: string | undefined): FacteursClientPayload | null
 }
 
 export default function FacteursScreen() {
+  console.log("FILE:", "(tabs)/facteurs/index.tsx");
+
   const router = useRouter();
   const params = useLocalSearchParams<{
     client?: string | string[];

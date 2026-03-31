@@ -9,6 +9,9 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  console.log("LAYOUT ROOT APP CHARGÉ");
+  console.log("FILE:", "_layout.tsx");
+
   return (
     <ThemeProvider value={DefaultTheme}>
       <Stack>

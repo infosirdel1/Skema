@@ -34,6 +34,8 @@ const T = {
 };
 
 export default function FacteursAdresseScreen() {
+  console.log("FILE:", "(tabs)/facteurs/adresse.tsx");
+
   const router = useRouter();
   const [client, setClient] = useState({
     name: "",

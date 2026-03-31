@@ -18,6 +18,8 @@ import { resetPvDraft, loadPvDraft, savePvDraft } from "@/lib/pvDraftStorage";
 import { validateEAN, validateIN } from "@/lib/pvValidation";
 
 export default function PvCompteurScreen() {
+  console.log("FILE:", "(tabs)/pv-create/compteur.js");
+
   const router = useRouter();
   const [draft, setDraft] = useState(null);
   const [eanSuffix, setEanSuffix] = useState("");

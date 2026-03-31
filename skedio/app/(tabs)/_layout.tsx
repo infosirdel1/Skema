@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { SvgXml } from "react-native-svg";
@@ -25,7 +26,12 @@ const TAB_INACTIVE = "#71717A";
 const ACCENT_BAR = "#C8102E";
 
 export default function TabLayout() {
+  console.log("FILE:", "(tabs)/_layout.tsx");
   console.log("LAYOUT TABS CHARGÉ");
+
+  useEffect(() => {
+    console.log("LAYOUT TABS USEEFFECT");
+  }, []);
 
   return (
     <Tabs

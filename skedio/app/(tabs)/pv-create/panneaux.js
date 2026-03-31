@@ -8,6 +8,8 @@ import PvChoiceCard from "@/components/pv/PvChoiceCard";
 import { loadPvDraft, savePvDraft } from "@/lib/pvDraftStorage";
 
 export default function PvPanneauxScreen() {
+  console.log("FILE:", "(tabs)/pv-create/panneaux.js");
+
   const router = useRouter();
   const [draft, setDraft] = useState(null);
 

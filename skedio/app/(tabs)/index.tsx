@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
 import Svg, { Rect } from 'react-native-svg';
+
+console.log("FICHIER INDEX CHARGÉ — ROOT LEVEL A1");
 
 const T = {
   bg: '#0A0A0A',
@@ -90,7 +92,12 @@ function ChoiceCard({
 }
 
 export default function HomeScreen() {
-  console.log("ECRAN TABS/INDEX CHARGÉ");
+  console.log("FILE:", "(tabs)/index.tsx");
+  console.log("ECRAN TABS/INDEX CHARGÉ — VERSION A1");
+
+  useEffect(() => {
+    console.log("USE EFFECT INDEX — VERSION A1");
+  }, []);
 
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<SelectedSchemaType | null>(null);

@@ -23,6 +23,8 @@ const C = {
 };
 
 export default function SchemasListScreen() {
+  console.log("FILE:", "(tabs)/schemas.tsx");
+
   const router = useRouter();
   const [draftLabel, setDraftLabel] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);

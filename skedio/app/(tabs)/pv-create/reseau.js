@@ -13,6 +13,8 @@ const networkTypes = [
 ];
 
 export default function PvReseauScreen() {
+  console.log("FILE:", "(tabs)/pv-create/reseau.js");
+
   const router = useRouter();
   const [draft, setDraft] = useState(null);
 

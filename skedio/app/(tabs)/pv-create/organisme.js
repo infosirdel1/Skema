@@ -8,6 +8,8 @@ import { loadPvDraft, savePvDraft } from "@/lib/pvDraftStorage";
 import { CONTROL_ORGANISMS } from "@/lib/controlOrganisms";
 
 export default function PvOrganismeScreen() {
+  console.log("FILE:", "(tabs)/pv-create/organisme.js");
+
   const router = useRouter();
   const [draft, setDraft] = useState(null);
   const [search, setSearch] = useState("");

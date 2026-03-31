@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AppHeader from "@/components/AppHeader";
 
 export default function BorneCreateScreen() {
+  console.log("FILE:", "(tabs)/borne-create.tsx");
+
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <AppHeader />

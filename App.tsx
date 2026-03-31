@@ -2,6 +2,9 @@ import React from 'react';
 import { LandingScreen } from './src/screens/LandingScreen';
 
 export default function App() {
+  console.log("APP.TSX CHARGÉ");
+  console.log("ROUTER ENTRY ACTIF");
+
   return (
     <LandingScreen
       onCreatePress={() => {
