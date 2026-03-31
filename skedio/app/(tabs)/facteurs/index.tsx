@@ -14,6 +14,8 @@ import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { Asset } from "expo-asset";
 import { readAsStringAsync, EncodingType } from "expo-file-system/legacy";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../../lib/firebase";
 
 import AppHeader from "@/components/AppHeader";
 import { LOCAL_CATEGORIES } from "@/lib/localsConfig";
@@ -283,6 +285,24 @@ export default function FacteursScreen() {
       console.error("PDF export error", e);
     }
   };
+
+  useEffect(() => {
+    console.log("TEST FIRESTORE FACTEURS");
+
+    async function testWrite() {
+      try {
+        const docRef = await addDoc(collection(db, "test"), {
+          name: "facteurs",
+          createdAt: new Date(),
+        });
+        console.log("OK Firestore ID:", docRef.id);
+      } catch (e) {
+        console.error("Erreur Firestore:", e);
+      }
+    }
+
+    testWrite();
+  }, []);
 
   if (!parsedClient) {
     return (
