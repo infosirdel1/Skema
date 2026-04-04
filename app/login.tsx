@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, TextInput, Button, Text, Alert } from "react-native";
-import { auth } from "../lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../lib/firebase";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -21,7 +22,16 @@ export default function LoginScreen() {
 
   const handleRegister = async () => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      const uid = userCredential.user.uid;
+
+      await setDoc(doc(db, "users", uid), {
+        email,
+        role: "user",
+        createdAt: new Date(),
+      });
+
       Alert.alert("Compte créé");
     } catch (error) {
       Alert.alert("Erreur", error.message);
