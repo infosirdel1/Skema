@@ -51,7 +51,7 @@ function buildSvgDataUrl(pathDs: string[], w: number, h: number): string {
         `<path d="${d.replace(/"/g, "&quot;")}" stroke="${PEN}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
     )
     .join("");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="${BG}"/>${paths}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background: transparent"><rect width="100%" height="100%" fill="none"/>${paths}</svg>`;
   try {
     const b64 = btoa(unescape(encodeURIComponent(svg)));
     return `data:image/svg+xml;base64,${b64}`;

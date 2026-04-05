@@ -9,13 +9,14 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
 import { Asset } from "expo-asset";
 import { readAsStringAsync, EncodingType } from "expo-file-system/legacy";
+import { doc, getDoc } from "firebase/firestore";
 
 import AppHeader from "@/components/AppHeader";
+import { auth, db } from "@/lib/firebase";
 import { LOCAL_CATEGORIES } from "@/lib/localsConfig";
 import {
   DEFAULT_FACTORS,
@@ -108,6 +109,29 @@ function parseClientParam(raw: string | undefined): FacteursClientPayload | null
   return parseJsonParam<FacteursClientPayload>(raw);
 }
 
+function profileStr(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
+/** Texte cartouche « Installateur » depuis users/{uid} (Firestore). */
+function buildInstallateurNameFromProfile(data: Record<string, unknown>): string {
+  const entreprise = profileStr(data.company);
+  const nomComplet = [profileStr(data.firstName), profileStr(data.lastName)]
+    .filter(Boolean)
+    .join(" ");
+  const adresse = [profileStr(data.street), profileStr(data.number)]
+    .filter(Boolean)
+    .join(" ");
+  const ville = [profileStr(data.postalCode), profileStr(data.city)]
+    .filter(Boolean)
+    .join(" ");
+  const commune = profileStr(data.commune);
+  const email = profileStr(data.email);
+
+  const parts = [entreprise, nomComplet, adresse, ville, commune, email].filter(Boolean);
+  return parts.join(" · ");
+}
+
 export default function FacteursScreen() {
   console.log("FILE:", "(tabs)/facteurs/index.tsx");
 
@@ -124,7 +148,10 @@ export default function FacteursScreen() {
     ? params.signatureClient[0]
     : params.signatureClient;
 
-  const parsedClient = parseClientParam(clientRaw);
+  const parsedClient = useMemo(
+    () => parseClientParam(clientRaw),
+    [clientRaw]
+  );
 
   const parsedOrganisme = useMemo((): FacteursOrganismePreset => {
     const o = parseJsonParam<FacteursOrganismePreset>(orgRaw);
@@ -144,11 +171,13 @@ export default function FacteursScreen() {
     return defaultSignatureClient;
   }, [sigRaw]);
 
-  useEffect(() => {
-    if (!clientRaw || !parsedClient) {
-      router.replace("/facteurs/adresse");
-    }
-  }, [clientRaw, parsedClient, router]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!clientRaw || !parsedClient) {
+        router.replace("/facteurs/adresse");
+      }
+    }, [clientRaw, parsedClient, router])
+  );
 
   useEffect(() => {
     const localsList = LOCAL_CATEGORIES.flatMap((c) => c.items);
@@ -251,34 +280,52 @@ export default function FacteursScreen() {
 
     const logoDataUri = await getLogoDataUri();
     console.log("LOGO DEBUG:", logoDataUri);
+
+    let installateurName = "";
+    let signatureInstallateur: string | undefined;
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      try {
+        const snap = await getDoc(doc(db, "users", uid));
+        if (snap.exists()) {
+          const u = snap.data() as Record<string, unknown>;
+          installateurName = buildInstallateurNameFromProfile(u);
+          const sig = profileStr(u.signatureDataUrl);
+          signatureInstallateur = sig.startsWith("data:image") ? sig : undefined;
+        }
+      } catch (e) {
+        console.error("Profil installateur (PDF)", e);
+      }
+    }
+
     const html = generateHtmlFromFactors(
       rows,
       logoDataUri,
       clientForPdf,
       parsedOrganisme,
-      parsedSignature
+      parsedSignature,
+      installateurName || undefined,
+      undefined,
+      signatureInstallateur
     );
 
     if (Platform.OS === "web") {
-      const newWindow = window.open();
+      const newWindow = window.open("", "_blank");
+
       if (newWindow) {
+        newWindow.document.open();
         newWindow.document.write(html);
         newWindow.document.close();
+      } else {
+        console.error("Impossible d'ouvrir la fenêtre PDF");
       }
       return;
     }
 
     try {
-      const result = await Print.printToFileAsync({
+      await Print.printAsync({
         html,
-        base64: false,
       });
-
-      if (!result?.uri) {
-        throw new Error("PDF generation failed");
-      }
-
-      await Sharing.shareAsync(result.uri);
     } catch (e) {
       console.error("PDF export error", e);
     }

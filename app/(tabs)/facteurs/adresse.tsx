@@ -33,9 +33,9 @@ const T = {
   textSecondary: "#A1A1AA",
 };
 
-export default function FacteursAdresseScreen() {
-  console.log("FILE:", "(tabs)/facteurs/adresse.tsx");
+const SWITCH_TRACK_COLORS = { false: "#333", true: "#3A3A3A" };
 
+export default function FacteursAdresseScreen() {
   const router = useRouter();
   const [client, setClient] = useState({
     name: "",
@@ -67,7 +67,19 @@ export default function FacteursAdresseScreen() {
     setOrganismeSearch("");
   }, []);
 
-  const handleContinue = () => {
+  const onSignatureImageChange = useCallback((img: string | null) => {
+    setSignatureClient((s) => ({ ...s, image: img }));
+  }, []);
+
+  const onSignatureEnabledChange = useCallback((v: boolean) => {
+    setSignatureClient((s) => ({
+      ...s,
+      enabled: v,
+      ...(v ? {} : { image: null }),
+    }));
+  }, []);
+
+  const handleContinue = useCallback(() => {
     router.push({
       pathname: "/facteurs",
       params: {
@@ -76,7 +88,13 @@ export default function FacteursAdresseScreen() {
         signatureClient: JSON.stringify(signatureClient),
       },
     });
-  };
+  }, [router, client, organisme, signatureClient]);
+
+  const previewSource = useMemo(
+    () =>
+      signatureClient.image ? { uri: signatureClient.image } : null,
+    [signatureClient.image]
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -216,14 +234,8 @@ export default function FacteursAdresseScreen() {
           <Text style={styles.switchLabel}>Signer le document</Text>
           <Switch
             value={signatureClient.enabled}
-            onValueChange={(v) =>
-              setSignatureClient((s) => ({
-                ...s,
-                enabled: v,
-                ...(v ? {} : { image: null }),
-              }))
-            }
-            trackColor={{ false: "#333", true: "#3A3A3A" }}
+            onValueChange={onSignatureEnabledChange}
+            trackColor={SWITCH_TRACK_COLORS}
             thumbColor={signatureClient.enabled ? "#C8102E" : "#888"}
           />
         </View>
@@ -246,19 +258,14 @@ export default function FacteursAdresseScreen() {
             />
             <SignaturePad
               value={signatureClient.image}
-              onChange={(img: string | null) =>
-                setSignatureClient((s) => ({
-                  ...s,
-                  image: img,
-                }))
-              }
+              onChange={onSignatureImageChange}
               height={180}
             />
-            {signatureClient.image ? (
+            {previewSource ? (
               <View style={styles.previewWrap}>
                 <Text style={styles.previewLabel}>Aperçu</Text>
                 <Image
-                  source={{ uri: signatureClient.image }}
+                  source={previewSource}
                   style={styles.previewImg}
                   resizeMode="contain"
                 />
