@@ -3,8 +3,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TouchableWithoutFeedback,
-  Keyboard,
   View,
   StyleSheet,
   type StyleProp,
@@ -29,8 +27,8 @@ type KeyboardLayoutProps = {
 };
 
 /**
- * Zone plein écran : clavier → contenu remonte, tap hors champ → dismiss.
- * À utiliser pour les écrans dont tout le contenu est dans un scroll (ex. profil).
+ * Zone plein écran : clavier → contenu remonte.
+ * Pas de TouchableWithoutFeedback : les TextInput reçoivent le focus au premier tap.
  */
 export default function KeyboardLayout({ children, contentContainerStyle }: KeyboardLayoutProps) {
   return (
@@ -39,16 +37,14 @@ export default function KeyboardLayout({ children, contentContainerStyle }: Keyb
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? KEYBOARD_VERTICAL_OFFSET_IOS : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.flex}>{children}</View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.flex}>{children}</View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

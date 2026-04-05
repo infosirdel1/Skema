@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ComponentRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,15 +9,20 @@ import {
   Modal,
   Pressable,
   Alert,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import SignatureScreen from "react-native-signature-canvas";
+
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 import AppHeader from "@/components/AppHeader";
 import KeyboardLayout from "@/components/KeyboardLayout";
-import { loadPvDraft, savePvDraft } from "@/lib/pvDraftStorage";
+import ProfileSignaturePad, {
+  type ProfileSignaturePadRef,
+} from "@/components/ProfileSignaturePad";
+import { auth, db } from "@/lib/firebase";
 import { CONTROL_ORGANISMS } from "@/lib/controlOrganisms";
 
 const inputBase = {
@@ -29,13 +34,6 @@ const inputBase = {
   fontSize: 16,
   color: "#FFFFFF",
 };
-
-const signatureWebStyle = `
-.m-signature-pad { box-shadow: none; border: none; }
-.m-signature-pad--body { border: none; }
-.m-signature-pad--footer { display: none !important; }
-body, html { height: 100%; margin: 0; padding: 0; }
-`;
 
 function SectionCard({
   title,
@@ -57,120 +55,175 @@ function Field({
   ...props
 }: React.ComponentProps<typeof TextInput> & { label: string }) {
   return (
-    <View style={styles.fieldBlock}>
+    <View style={styles.fieldBlock} pointerEvents="box-none">
       <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
         placeholderTextColor="#A0A0A0"
         style={styles.input}
+        editable={true}
         {...props}
       />
     </View>
   );
 }
 
-export default function ProfileScreen() {
-  console.log("FILE:", "(tabs)/profile.tsx");
+function str(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
 
-  const signatureRef = useRef<ComponentRef<typeof SignatureScreen> | null>(null);
+export default function ProfileScreen() {
+  const signatureRef = useRef<ProfileSignaturePadRef | null>(null);
+  const saveSuccessOpacity = useRef(new Animated.Value(0)).current;
+
   const [signature, setSignature] = useState("");
-  const [companyName, setCompanyName] = useState("");
+  const [company, setCompany] = useState("");
   const [companyVat, setCompanyVat] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [street, setStreet] = useState("");
+  const [streetNumber, setStreetNumber] = useState("");
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  const [commune, setCommune] = useState("");
   const [organismLabel, setOrganismLabel] = useState("");
   const [organismModal, setOrganismModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const saveUserProfile = useCallback(
-    async (patch: Record<string, unknown>) => {
-      const draft = await loadPvDraft();
-      await savePvDraft(
-        {
-          ...draft,
-          userProfile: {
-            ...draft.userProfile,
-            ...patch,
-          },
-        },
-        { bumpVersion: false }
-      );
-    },
-    []
-  );
+  const applyFirestoreUser = useCallback((data: Record<string, unknown>, authEmail: string | null) => {
+    setCompany(str(data.company ?? data.companyName));
+    setCompanyVat(str(data.companyVat));
+    setFirstName(str(data.firstName));
+    setLastName(str(data.lastName));
+    setPhone(str(data.phone));
+    const docEmail = str(data.email);
+    setEmail(docEmail.length > 0 ? docEmail : authEmail ?? "");
+    setStreet(str(data.street));
+    setStreetNumber(str(data.number));
+    setPostalCode(str(data.postalCode));
+    setCity(str(data.city));
+    setCommune(str(data.commune));
 
-  const applyDraft = useCallback((d: Awaited<ReturnType<typeof loadPvDraft>>) => {
-    const u = d.userProfile || {};
-    setCompanyName(u.companyName ?? "");
-    setCompanyVat(u.companyVat ?? "");
-    setFirstName(u.firstName ?? "");
-    setLastName(u.lastName ?? "");
-    setPhone(u.phone ?? "");
-    setEmail(u.email ?? "");
-    setStreet(u.street ?? "");
-    setCity(u.city ?? "");
-    setPostalCode(u.postalCode ?? "");
-    setOrganismLabel(u.defaultOrganism?.name?.trim() ? u.defaultOrganism.name : "");
-    setSignature(typeof u.signature === "string" ? u.signature : "");
+    const org = data.defaultOrganism;
+    if (typeof org === "string") {
+      setOrganismLabel(org);
+    } else if (org && typeof org === "object" && org !== null && "name" in org) {
+      setOrganismLabel(str((org as { name: unknown }).name));
+    } else {
+      setOrganismLabel("");
+    }
+
+    setSignature(str(data.signatureDataUrl ?? data.signature));
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      void (async () => {
-        const d = await loadPvDraft();
-        applyDraft(d);
-      })();
-    }, [applyDraft])
-  );
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setCompany("");
+        setCompanyVat("");
+        setFirstName("");
+        setLastName("");
+        setPhone("");
+        setEmail("");
+        setStreet("");
+        setStreetNumber("");
+        setCity("");
+        setPostalCode("");
+        setCommune("");
+        setOrganismLabel("");
+        setSignature("");
+        return;
+      }
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const data = snap.data() as Record<string, unknown>;
+          applyFirestoreUser(data, typeof user.email === "string" ? user.email : null);
+        } else {
+          setCompany("");
+          setCompanyVat("");
+          setFirstName("");
+          setLastName("");
+          setPhone("");
+          setEmail(typeof user.email === "string" ? user.email : "");
+          setStreet("");
+          setStreetNumber("");
+          setCity("");
+          setPostalCode("");
+          setCommune("");
+          setOrganismLabel("");
+          setSignature("");
+        }
+      } catch (e) {
+        console.error("Profile Firestore load error", e);
+        setCompany("");
+        setCompanyVat("");
+        setFirstName("");
+        setLastName("");
+        setPhone("");
+        setEmail(typeof user.email === "string" ? user.email : "");
+        setStreet("");
+        setStreetNumber("");
+        setCity("");
+        setPostalCode("");
+        setCommune("");
+        setOrganismLabel("");
+        setSignature("");
+      }
+    });
+    return unsubscribe;
+  }, [applyFirestoreUser]);
 
   async function handleSave() {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert("Non connecté", "Connectez-vous pour enregistrer votre profil.");
+      return;
+    }
+
     setSaving(true);
     try {
-      const draft = await loadPvDraft();
-      const selected = CONTROL_ORGANISMS.find((o) => o.name === organismLabel);
-      const nextOrganism = selected
-        ? {
-            name: selected.name,
-            address: selected.address,
-            vat: selected.vat,
-            phone: selected.phone,
-            email: selected.email,
-            value: selected.value,
-          }
-        : draft.userProfile?.defaultOrganism || {
-            name: "",
-            address: "",
-            vat: "",
-            phone: "",
-            email: "",
-            value: "",
-          };
-
-      await savePvDraft(
+      await setDoc(
+        doc(db, "users", user.uid),
         {
-          ...draft,
-          userProfile: {
-            ...draft.userProfile,
-            companyName: companyName.trim(),
-            companyVat: companyVat.trim(),
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            phone: phone.trim(),
-            email: email.trim(),
-            street: street.trim(),
-            city: city.trim(),
-            postalCode: postalCode.trim(),
-            defaultOrganism: nextOrganism,
-            signature,
-          },
+          company: company.trim(),
+          companyVat: companyVat.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          street: street.trim(),
+          number: streetNumber.trim(),
+          postalCode: postalCode.trim(),
+          city: city.trim(),
+          commune: commune.trim(),
+          defaultOrganism: organismLabel.trim(),
+          signatureDataUrl: signature.trim(),
         },
-        { bumpVersion: false }
+        { merge: true }
       );
-      Alert.alert("Enregistré", "Votre profil a été sauvegardé localement.");
+      setSaveSuccess(true);
+      saveSuccessOpacity.setValue(0);
+      Animated.sequence([
+        Animated.timing(saveSuccessOpacity, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.delay(1200),
+        Animated.timing(saveSuccessOpacity, {
+          toValue: 0,
+          duration: 380,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      setTimeout(() => setSaveSuccess(false), 2000);
+      Alert.alert("Enregistré", "Votre profil a été mis à jour.");
+    } catch (e) {
+      console.error("Profile save error", e);
+      Alert.alert("Erreur", "Impossible d'enregistrer le profil.");
     } finally {
       setSaving(false);
     }
@@ -181,14 +234,22 @@ export default function ProfileScreen() {
       <AppHeader />
       <KeyboardLayout>
         <View style={styles.keyboardInner}>
+          {saveSuccess && (
+            <Animated.View
+              style={[styles.successBox, { opacity: saveSuccessOpacity }]}
+              pointerEvents="none"
+            >
+              <Text style={styles.successText}>Enregistré ✓</Text>
+            </Animated.View>
+          )}
           <View style={styles.scroll}>
             <Text style={styles.header}>Profil</Text>
 
             <SectionCard title="Informations entreprise">
               <Field
                 label="Nom entreprise"
-                value={companyName}
-                onChangeText={setCompanyName}
+                value={company}
+                onChangeText={setCompany}
                 placeholder="Nom de l'entreprise"
               />
               <Field
@@ -221,8 +282,8 @@ export default function ProfileScreen() {
             </SectionCard>
 
             <SectionCard title="Adresse">
-              <Field label="Rue" value={street} onChangeText={setStreet} placeholder="Rue et numéro" />
-              <Field label="Ville" value={city} onChangeText={setCity} placeholder="Ville" />
+              <Field label="Rue" value={street} onChangeText={setStreet} placeholder="Rue" />
+              <Field label="Numéro" value={streetNumber} onChangeText={setStreetNumber} placeholder="N°" />
               <Field
                 label="Code postal"
                 value={postalCode}
@@ -230,6 +291,8 @@ export default function ProfileScreen() {
                 placeholder="1000"
                 keyboardType="numbers-and-punctuation"
               />
+              <Field label="Ville" value={city} onChangeText={setCity} placeholder="Ville" />
+              <Field label="Commune" value={commune} onChangeText={setCommune} placeholder="Commune" />
             </SectionCard>
 
             <SectionCard title="Organisme">
@@ -248,31 +311,12 @@ export default function ProfileScreen() {
 
             <SectionCard title="Signature">
               <View style={styles.signaturePadWrap}>
-                <SignatureScreen
+                <ProfileSignaturePad
                   ref={signatureRef}
-                  nestedScrollEnabled
-                  dataURL={signature}
-                  imageType="image/png"
-                  penColor="#111111"
-                  descriptionText=""
-                  webStyle={signatureWebStyle}
+                  value={signature}
+                  onChange={setSignature}
                   style={styles.signaturePad}
-                  webviewContainerStyle={styles.signatureWebview}
-                  onOK={(data) => {
-                    setSignature(data);
-                    void saveUserProfile({ signature: data });
-                  }}
-                  onEmpty={() => {
-                    setSignature("");
-                    void saveUserProfile({ signature: "" });
-                  }}
-                  onClear={() => {
-                    setSignature("");
-                    void saveUserProfile({ signature: "" });
-                  }}
-                  onEnd={() => {
-                    signatureRef.current?.readSignature();
-                  }}
+                  containerStyle={styles.signatureInner}
                 />
               </View>
               <TouchableOpacity
@@ -332,6 +376,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "space-between",
     paddingTop: 10,
+    position: "relative",
+  },
+  successBox: {
+    position: "absolute",
+    top: 20,
+    alignSelf: "center",
+    zIndex: 20,
+    backgroundColor: "#2ecc71",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  successText: {
+    color: "#fff",
+    fontWeight: "600",
   },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
   saveBtnWrap: {
@@ -388,8 +451,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#111111",
   },
-  signaturePad: { flex: 1, backgroundColor: "#111111" },
-  signatureWebview: { flex: 1, backgroundColor: "#111111" },
+  signaturePad: { flex: 1 },
+  signatureInner: { flex: 1 },
   clearSignatureBtn: {
     marginTop: 12,
     alignSelf: "flex-start",
