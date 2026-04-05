@@ -10,19 +10,22 @@ import {
   Pressable,
   Alert,
   Animated,
+  Button,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 import AppHeader from "@/components/AppHeader";
 import KeyboardLayout from "@/components/KeyboardLayout";
 import ProfileSignaturePad, {
   type ProfileSignaturePadRef,
 } from "@/components/ProfileSignaturePad";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
 import { CONTROL_ORGANISMS } from "@/lib/controlOrganisms";
 
 const inputBase = {
@@ -229,6 +232,49 @@ export default function ProfileScreen() {
     }
   }
 
+  const handleLogoPick = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert("Non connecté", "Connectez-vous pour ajouter un logo.");
+      return;
+    }
+
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Autorisation requise",
+        "Autorisez l’accès à la photothèque pour choisir un logo."
+      );
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+      });
+
+      if (result.canceled) return;
+
+      const uri = result.assets[0].uri;
+
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      const fileRef = ref(storage, `logos/${user.uid}.jpg`);
+
+      await uploadBytes(fileRef, blob);
+      const downloadURL = await getDownloadURL(fileRef);
+
+      await updateDoc(doc(db, "users", user.uid), {
+        logoUrl: downloadURL,
+      });
+    } catch (e) {
+      console.error("Logo upload error", e);
+      Alert.alert("Erreur", "Impossible d’enregistrer le logo.");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <AppHeader />
@@ -259,6 +305,7 @@ export default function ProfileScreen() {
                 placeholder="BE0..."
                 autoCapitalize="characters"
               />
+              <Button title="Ajouter logo entreprise" onPress={handleLogoPick} />
             </SectionCard>
 
             <SectionCard title="Informations personnelles">

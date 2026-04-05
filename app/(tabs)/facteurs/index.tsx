@@ -122,13 +122,12 @@ function buildInstallateurLinesFromProfile(data: Record<string, unknown>): strin
   const rueNumero = [profileStr(data.street), profileStr(data.number)].filter(Boolean).join(" ");
   const cpVillePart = [profileStr(data.postalCode), profileStr(data.city)].filter(Boolean).join(" ");
   const commune = profileStr(data.commune);
-  const cpVille = [cpVillePart, commune].filter(Boolean).join(cpVillePart && commune ? " — " : "");
 
   const telephone = profileStr(data.phone);
   const email = profileStr(data.email);
   const tva = profileStr(data.companyVat);
 
-  return [societe, rueNumero, cpVille, telephone, email, tva].filter(Boolean);
+  return [societe, rueNumero, cpVillePart, commune, telephone, email, tva].filter(Boolean);
 }
 
 export default function FacteursScreen() {
@@ -330,6 +329,7 @@ export default function FacteursScreen() {
 
     let installateurLines: string[] | undefined;
     let signatureInstallateur: string | undefined;
+    let installateurLogoUrl: string | undefined;
     const uid = auth.currentUser?.uid;
     if (uid) {
       try {
@@ -340,6 +340,8 @@ export default function FacteursScreen() {
           installateurLines = lines.length > 0 ? lines : undefined;
           const sig = profileStr(u.signatureDataUrl);
           signatureInstallateur = sig.startsWith("data:image") ? sig : undefined;
+          const logoUrl = profileStr(u.logoUrl);
+          installateurLogoUrl = logoUrl.length > 0 ? logoUrl : undefined;
         }
       } catch (e) {
         console.error("Profil installateur (PDF)", e);
@@ -354,7 +356,8 @@ export default function FacteursScreen() {
       parsedSignature,
       installateurLines,
       undefined,
-      signatureInstallateur
+      signatureInstallateur,
+      installateurLogoUrl
     );
 
     if (Platform.OS === "web") {
