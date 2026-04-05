@@ -17,8 +17,8 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
-const PEN = "#F5F5F5";
-const BG = "#111111";
+const PEN = "#000000";
+const BG = "#FFFFFF";
 
 export type ProfileSignaturePadProps = {
   value: string;
@@ -51,7 +51,7 @@ function buildSvgDataUrl(pathDs: string[], w: number, h: number): string {
         `<path d="${d.replace(/"/g, "&quot;")}" stroke="${PEN}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
     )
     .join("");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background: transparent"><rect width="100%" height="100%" fill="none"/>${paths}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="${BG}"/>${paths}</svg>`;
   try {
     const b64 = btoa(unescape(encodeURIComponent(svg)));
     return `data:image/svg+xml;base64,${b64}`;
@@ -80,7 +80,8 @@ function parseSvgPathsFromDataUrl(dataUrl: string): string[] {
 
 /**
  * Signature sans WebView : Svg + PanResponder (web + iOS + Android).
- * Les anciennes signatures PNG (WebView) restent affichées en fond jusqu’à Effacer.
+ * Fond blanc + trait noir pour cohérence PDF / documents.
+ * Les anciennes signatures PNG restent affichées en fond jusqu’à Effacer.
  */
 const ProfileSignaturePad = forwardRef<ProfileSignaturePadRef, ProfileSignaturePadProps>(
   function ProfileSignaturePad({ value, onChange, style, containerStyle }, ref) {

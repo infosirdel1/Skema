@@ -80,6 +80,19 @@ export default function FacteursAdresseScreen() {
   }, []);
 
   const handleContinue = useCallback(() => {
+    if (Platform.OS === "web" && typeof window !== "undefined" && typeof sessionStorage !== "undefined") {
+      try {
+        sessionStorage.setItem(
+          "skedio_facteurs_flow_v1",
+          JSON.stringify({ client, organisme, signatureClient })
+        );
+      } catch (e) {
+        console.error("Facteurs sessionStorage", e);
+      }
+      /* Navigation dure : router.push garde parfois des params géants → 431 (headers / URL). */
+      window.location.replace(new URL("/facteurs", window.location.origin).href);
+      return;
+    }
     router.push({
       pathname: "/facteurs",
       params: {

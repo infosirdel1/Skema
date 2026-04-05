@@ -55,6 +55,9 @@ const LOGO_ASSET = require("../../../assets/images/logo.png");
 
 const LOGO_DATA_PREFIX = "data:image/png;base64,";
 
+/** Web : évite URL géante (signature base64) → 431 Request Header Fields Too Large */
+const FACTEURS_WEB_STORAGE_KEY = "skedio_facteurs_flow_v1";
+
 async function getLogoDataUri(): Promise<string | undefined> {
   try {
     const asset = Asset.fromModule(LOGO_ASSET);
@@ -113,23 +116,19 @@ function profileStr(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
-/** Texte cartouche « Installateur » depuis users/{uid} (Firestore). */
-function buildInstallateurNameFromProfile(data: Record<string, unknown>): string {
-  const entreprise = profileStr(data.company);
-  const nomComplet = [profileStr(data.firstName), profileStr(data.lastName)]
-    .filter(Boolean)
-    .join(" ");
-  const adresse = [profileStr(data.street), profileStr(data.number)]
-    .filter(Boolean)
-    .join(" ");
-  const ville = [profileStr(data.postalCode), profileStr(data.city)]
-    .filter(Boolean)
-    .join(" ");
+/** Lignes cartouche « Installateur » depuis users/{uid} (Firestore). Société uniquement (pas prénom/nom). */
+function buildInstallateurLinesFromProfile(data: Record<string, unknown>): string[] {
+  const societe = profileStr(data.company);
+  const rueNumero = [profileStr(data.street), profileStr(data.number)].filter(Boolean).join(" ");
+  const cpVillePart = [profileStr(data.postalCode), profileStr(data.city)].filter(Boolean).join(" ");
   const commune = profileStr(data.commune);
-  const email = profileStr(data.email);
+  const cpVille = [cpVillePart, commune].filter(Boolean).join(cpVillePart && commune ? " — " : "");
 
-  const parts = [entreprise, nomComplet, adresse, ville, commune, email].filter(Boolean);
-  return parts.join(" · ");
+  const telephone = profileStr(data.phone);
+  const email = profileStr(data.email);
+  const tva = profileStr(data.companyVat);
+
+  return [societe, rueNumero, cpVille, telephone, email, tva].filter(Boolean);
 }
 
 export default function FacteursScreen() {
@@ -142,11 +141,58 @@ export default function FacteursScreen() {
     signatureClient?: string | string[];
   }>();
 
-  const clientRaw = Array.isArray(params.client) ? params.client[0] : params.client;
-  const orgRaw = Array.isArray(params.organisme) ? params.organisme[0] : params.organisme;
-  const sigRaw = Array.isArray(params.signatureClient)
-    ? params.signatureClient[0]
-    : params.signatureClient;
+  const [webBootstrapDone, setWebBootstrapDone] = useState(Platform.OS !== "web");
+  const [webFlowStrings, setWebFlowStrings] = useState<{
+    client: string;
+    organisme: string;
+    signatureClient: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof sessionStorage === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem(FACTEURS_WEB_STORAGE_KEY);
+      if (raw) {
+        sessionStorage.removeItem(FACTEURS_WEB_STORAGE_KEY);
+        const p = JSON.parse(raw) as {
+          client: unknown;
+          organisme: unknown;
+          signatureClient: unknown;
+        };
+        setWebFlowStrings({
+          client: JSON.stringify(p.client),
+          organisme: JSON.stringify(p.organisme),
+          signatureClient: JSON.stringify(p.signatureClient),
+        });
+      }
+    } catch (e) {
+      console.error("Facteurs lecture sessionStorage", e);
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const u = new URL(window.location.href);
+        if (u.search.length > 256) {
+          u.search = "";
+          window.history.replaceState({}, document.title, u.pathname + u.hash);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    setWebBootstrapDone(true);
+  }, []);
+
+  const clientRaw =
+    webFlowStrings?.client ??
+    (Array.isArray(params.client) ? params.client[0] : params.client);
+  const orgRaw =
+    webFlowStrings?.organisme ??
+    (Array.isArray(params.organisme) ? params.organisme[0] : params.organisme);
+  const sigRaw =
+    webFlowStrings?.signatureClient ??
+    (Array.isArray(params.signatureClient)
+      ? params.signatureClient[0]
+      : params.signatureClient);
 
   const parsedClient = useMemo(
     () => parseClientParam(clientRaw),
@@ -173,10 +219,11 @@ export default function FacteursScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (Platform.OS === "web" && !webBootstrapDone) return;
       if (!clientRaw || !parsedClient) {
         router.replace("/facteurs/adresse");
       }
-    }, [clientRaw, parsedClient, router])
+    }, [clientRaw, parsedClient, router, webBootstrapDone])
   );
 
   useEffect(() => {
@@ -281,7 +328,7 @@ export default function FacteursScreen() {
     const logoDataUri = await getLogoDataUri();
     console.log("LOGO DEBUG:", logoDataUri);
 
-    let installateurName = "";
+    let installateurLines: string[] | undefined;
     let signatureInstallateur: string | undefined;
     const uid = auth.currentUser?.uid;
     if (uid) {
@@ -289,7 +336,8 @@ export default function FacteursScreen() {
         const snap = await getDoc(doc(db, "users", uid));
         if (snap.exists()) {
           const u = snap.data() as Record<string, unknown>;
-          installateurName = buildInstallateurNameFromProfile(u);
+          const lines = buildInstallateurLinesFromProfile(u);
+          installateurLines = lines.length > 0 ? lines : undefined;
           const sig = profileStr(u.signatureDataUrl);
           signatureInstallateur = sig.startsWith("data:image") ? sig : undefined;
         }
@@ -304,7 +352,7 @@ export default function FacteursScreen() {
       clientForPdf,
       parsedOrganisme,
       parsedSignature,
-      installateurName || undefined,
+      installateurLines,
       undefined,
       signatureInstallateur
     );
