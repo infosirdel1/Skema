@@ -1,0 +1,11 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Logos : à fusionner avec vos autres règles sous ce même match si vous en avez.
+    match /logos/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && fileName.startsWith(request.auth.uid);
+    }
+  }
+}

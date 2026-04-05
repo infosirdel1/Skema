@@ -16,8 +16,9 @@ import * as ImagePicker from "expo-image-picker";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 import AppHeader from "@/components/AppHeader";
@@ -213,13 +214,13 @@ export default function ProfileScreen() {
         Animated.timing(saveSuccessOpacity, {
           toValue: 1,
           duration: 220,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.delay(1200),
         Animated.timing(saveSuccessOpacity, {
           toValue: 0,
           duration: 380,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
       setTimeout(() => setSaveSuccess(false), 2000);
@@ -250,7 +251,7 @@ export default function ProfileScreen() {
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         quality: 0.7,
       });
 
@@ -272,6 +273,17 @@ export default function ProfileScreen() {
     } catch (e) {
       console.error("Logo upload error", e);
       Alert.alert("Erreur", "Impossible d’enregistrer le logo.");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      console.log("LOGOUT OK");
+
+      router.replace("/login");
+    } catch (e) {
+      console.error("LOGOUT ERROR", e);
     }
   };
 
@@ -385,6 +397,7 @@ export default function ProfileScreen() {
             >
               <Text style={styles.saveBtnText}>{saving ? "…" : "Sauvegarder"}</Text>
             </TouchableOpacity>
+            <Button title="Se déconnecter" onPress={handleLogout} />
           </View>
         </View>
       </KeyboardLayout>

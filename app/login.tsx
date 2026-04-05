@@ -6,12 +6,10 @@ import {
   Pressable,
   StyleSheet,
   Image,
+  Button,
 } from "react-native";
-import { auth, db } from "../lib/firebase";
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { Stack, useRouter } from "expo-router";
 
@@ -22,11 +20,15 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      console.log("LOGIN OK:", userCredential.user.uid);
       router.replace("/(tabs)");
     } catch (error) {
-      console.log("LOGIN ERROR:", error);
-      alert("Email ou mot de passe incorrect");
+      console.error("LOGIN ERROR", error);
     }
   };
 
@@ -104,13 +106,7 @@ export default function LoginScreen() {
             style={styles.input}
           />
 
-          <Pressable
-            style={styles.primaryButton}
-            onPress={handleLogin}
-            android_ripple={{ color: "#ffffff22" }}
-          >
-            <Text style={styles.primaryButtonText}>Se connecter</Text>
-          </Pressable>
+          <Button title="Se connecter" onPress={handleLogin} />
 
           <Pressable
             style={styles.secondaryButton}
@@ -160,17 +156,6 @@ const styles = StyleSheet.create({
     padding: 12,
     color: "#FFF",
     marginBottom: 10,
-  },
-  primaryButton: {
-    backgroundColor: "#E53935",
-    padding: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  primaryButtonText: {
-    color: "#FFF",
-    fontWeight: "600",
   },
   secondaryButton: {
     backgroundColor: "#1E1E1E",
